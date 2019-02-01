@@ -80,7 +80,8 @@ plugins=(
   zsh-autosuggestions
   zsh-syntax-highlighting
 )
-autoload -U compinit && compinit
+autoload -U compinit
+compinit
 source $ZSH/oh-my-zsh.sh
 
 # cacl plugin
@@ -118,7 +119,7 @@ HISTFILE=~/.histfile
 HISTSIZE=1000
 SAVEHIST=1000
 
-setopt appendhistory autocd extendedglob glob_star_short nomatch notify
+setopt appendhistory autocd extendedglob glob_star_short nomatch notify ignore_eof
 unsetopt beep
 
 # zstyle :compinstall filename '/home/hunter04d/.zshrc'
@@ -245,13 +246,21 @@ alias cls=clear
 alias cp="cp -i"                          # confirm before overwriting something
 alias df='df -h'                          # human-readable sizes
 alias free='free -m'                      # show sizes in MB
-alias np='kate PKGBUILD'
+alias np='kate PKGBUILD &'
 alias more=less
 
 
 alias egrep='egrep --colour=auto'
 alias fgrep='fgrep --colour=auto'
 
+globalias() 
+{
+   zle _expand_alias
+   zle expand-word
+}
+zle -N globalias
+bindkey -M emacs "^ " globalias
+bindkey -M viins "^ " globalias
 # zsh named directories
 #idea from http://michael.thegrebs.com/2012/08/06/syncing-zsh-named-directories/
 
@@ -259,18 +268,17 @@ typeset -A NAMED_DIRS
 NAMED_DIRS=(
     Web /mnt/e/Web
     Screenshots /mnt/e/ManjaroScreeneshots
-    Test /home/hunter04d/NOT_HERE
 )
 
-for key in ${(k)NAMED_DIRS}; do
-    if [[ -d ${NAMED_DIRS[$key]} ]]; then
-        hash -d $key=${NAMED_DIRS[$key]}
+for key val in ${(kv)NAMED_DIRS}; do
+    if [[ -d ${val} ]]; then
+        hash -d $key=${val}
     else
         #echo "Unset $key to $NAMED_DIRS[$key]"
         unset "NAMED_DIRS[$key]"
     fi
 done
-unset key
+unset key val
 
 function lsdirs () {
    print -a -C 2 ${(kv)NAMED_DIRS}
