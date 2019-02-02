@@ -73,6 +73,7 @@ plugins=(
   kate
   pip
   command-not-found
+  autoupdate
   sudo
   web-search
   extract
@@ -85,7 +86,7 @@ compinit
 source $ZSH/oh-my-zsh.sh
 
 # cacl plugin
-source $HOME/.oh-my-zsh/plugins/calc/calc.plugin.zsh
+source $ZSH_CUSTOM/plugins/calc/calc.plugin.zsh
 # User configuration
 
 # export MANPATH="/usr/local/man:$MANPATH"
@@ -126,22 +127,26 @@ unsetopt beep
 # autoload -Uz compinit
 # compinit
 
-
+# dotnet completion
+_dotnet_zsh_complete() {
+  local completions=("$(dotnet complete "$words")")
+  reply=( "${(ps:\n:)completions}" )
+}
+compctl -K _dotnet_zsh_complete dotnet
 export DOTNET_CLI_TELEMETRY_OPTOUT=1
 # ex - archive extractor
 # usage: ex <file>
-ex ()
-{
+ex () {
   if [ -f $1 ] ; then
     case $1 in
       *.tar.bz2)   tar xjf $1   ;;
       *.tar.gz)    tar xzf $1   ;;
-      *.bz2)       bunzip2 $1   ;;
-      *.rar)       unrar x $1     ;;
-      *.gz)        gunzip $1    ;;
-      *.tar)       tar xf $1    ;;
       *.tbz2)      tar xjf $1   ;;
       *.tgz)       tar xzf $1   ;;
+      *.tar)       tar xpf $1   ;;
+      *.bz2)       bunzip2 $1   ;;
+      *.gz)        gunzip $1    ;;     
+      *.rar)       unrar x $1   ;;
       *.zip)       unzip $1     ;;
       *.Z)         uncompress $1;;
       *.7z)        7z x $1      ;;
@@ -149,6 +154,26 @@ ex ()
     esac
   else
     echo "'$1' is not a valid file"
+  fi
+}
+
+cx () {
+  if [ $1 ] ; then
+    case $1 in
+      tar.bz) tar cjvf $2.tar.bz2 $2  ;;
+      tar.gz) tar czvf $2.tar.gz $2   ;;
+      tgz)    tar czvf $2.tgz $2      ;;
+      tgz2)   tar cjvf $2.tgz2 $2     ;;
+      tar)    tar cpvf $2.tar  $2     ;;
+      bz2)    bzip2 -c -9 $2 > $2.bz2 ;;
+      gz)     gzip -c -9 -n $2 > $2.gz;;
+      zip)    zip -r $2.zip $2        ;;
+      Z)      compress -r -c $2 > $2.Z;;
+      7z)     7z a $2.7z $2           ;;
+      *)      echo "'$1' cannot be packed via cx()" ;;
+    esac
+  else
+      echo "'$1' is not a valid file"
   fi
 }
 
@@ -161,14 +186,13 @@ if [ $TILIX_ID ] || [ $VTE_VERSION ]; then
 fi
 
 #mount local cifs share
-mountRT() 
-{
-    sudo mount -t cifs //192.168.1.1/folder /mnt/folder -o credentials=/home/hunter04d/.rt-ac66u-b1.credentials,vers=1.0,uid=1000,gid=1001
+mountRT() {
+    sudo mount -t cifs //192.168.1.1/folder /mnt/folder -o vers=1.0,uid=1000,gid=1001, \
+        credentials=/home/hunter04d/.rt-ac66u-b1.credentials
 }
 
-# fixes icons upon 
-fixIcons()
-{
+# fixes icons upon theme change
+fixIcons() {
     local current_theme=$(kreadconfig5 --file $HOME/.config/kdeglobals --group Icons --key Theme)
     if [[ $current_theme == Papirus* ]]; then
         sudo -E hardcode-tray --apply --conversion-tool RSVGConvert --size 22 --theme $current_theme
@@ -176,43 +200,25 @@ fixIcons()
 }
 
 
-colors() 
-{
-	local fgc bgc vals seq0
-
-	printf "Color escapes are %s\n" '\e[${value};...;${value}m'
-	printf "Values 30..37 are \e[33mforeground colors\e[m\n"
-	printf "Values 40..47 are \e[43mbackground colors\e[m\n"
-	printf "Value  1 gives a  \e[1mbold-faced look\e[m\n\n"
-
-	# foreground colors
-	for fgc in {30..37}; do
-		# background colors
-		for bgc in {40..47}; do
-			fgc=${fgc#37} # white
-			bgc=${bgc#40} # black
-
-			vals="${fgc:+$fgc;}${bgc}"
-			vals=${vals%%;}
-
-			seq0="${vals:+\e[${vals}m}"
-			printf "  %-9s" "${seq0:-(default)}"
-			printf " ${seq0}TEXT\e[m"
-			printf " \e[${vals:+${vals+$vals;}}1mBOLD\e[m"
+colors() {
+	local fgc bgc vals
+    vals=("\uf175bg|fg\uf178" ${(l:5:):-{0..7}})
+    # background colors
+	for bgc in {0..7}; do
+        vals+=($bgc)
+        # foreground colors
+		for fgc in {0..7}; do
+			vals+=("%F{$fgc}%K{$bgc}text%k %K{$bgc}%BBOLD%b%k%f")
 		done
-		echo; echo
 	done
+    print -a -P -C 9 ${vals[@]}
 }
 
 # toggle light/dark themes
-ttheme()
-{
-    $HOME/ThemeChanger/change-theme.sh
-}
+function ttheme(); $HOME/ThemeChanger/change-theme.sh
 
 # NOTE to self: **11** is very magical might crash
-toggle-mouse()
-{
+toggle-mouse() {
     local state=$(xinput list-props 11 | grep 'libinput Scroll Method Enabled' | head -n 1 |tr -d '\n'| tail -c 1)
     #TODO a simpler way to toggle 
     if [[ state = 1 ]]; then
@@ -253,8 +259,7 @@ alias more=less
 alias egrep='egrep --colour=auto'
 alias fgrep='fgrep --colour=auto'
 
-globalias() 
-{
+globalias() {
    zle _expand_alias
    zle expand-word
 }
@@ -284,11 +289,54 @@ function lsdirs () {
    print -a -C 2 ${(kv)NAMED_DIRS}
 }
 
+# custom segment that displays info about current project
+prompt_hunter04d_segment() {
+   #TODO: setopt and emulate -L zsh     
+    local f
+    local count=0
+    local content
+    local fgc=black
+    local bgc=yellow
+    local temp
+    local icon=''
+    temp=$(command dotnet sln list 2> /dev/null)
+    if [[ $? -eq 0 ]]; then
+        bgc=007
+        local proj=""
+        content="sln: "
+        local totalcount=$(echo $temp| tail -n+3 | wc -l)
+        local cscount=$(echo $temp | grep -i -c csproj$)
+        local fscount=$(echo $temp | grep -i -c fsproj$)
+        local vcxcount=$(echo $temp | grep -i -c vcxproj$)
+        if [[ $cscount -eq $totalcount ]]; then 
+            content+="%F{034}$cscount \uf81a%f" 
+        elif [[ $fscount -eq $totalcount ]]; then
+            content+="%F{057}$fscount \ue7a7%f"
+        elif [[ $vcxcount -eq $totalcount ]]; then
+            content+="%F{171}$vcxcount \uefb71%f"
+        else
+            content+="$totalcount \ue601"
+            if [[ $cscount -ne 0 ]] ; then content+=" | %F{034}$cscount \uf81a%f"; fi
+            if [[ $cscount -ne 0 ]] ; then content+=" | %F{057}$fscount \ue7a7%f"; fi
+            if [[ $vcxcount -ne 0 ]]; then content+=" | %F{171}$vcxcount \ue7a7%f"; fi
+        fi
+    fi
+    temp=(*.(csproj|fsproj)(#qN.))
+    if [[ ${#temp} -eq 1 ]]; then
+        case $temp in
+            *.csproj) icon='\uf81a'; bgc=034; fgc=015;;
+            *.fsproj) icon='\ue7a7'; bgc=057; fgc=015;;
+        esac
+        content="$(xmllint --xpath '/Project/PropertyGroup/TargetFramework/text()' $temp)"
+    fi
+    if [[ -n $content ]]; then
+        "$1_prompt_segment" "$0" "$2" "$bgc" "$fgc" "$icon $content"
+    fi
+}
 
 VIRTUAL_ENV_DISABLE_PROMPT=1
-
-POWERLEVEL9K_LEFT_PROMPT_ELEMENTS=(context dir vcs)
-POWERLEVEL9K_RIGHT_PROMPT_ELEMENTS=(virtualenv background_jobs status command_execution_time)
+POWERLEVEL9K_LEFT_PROMPT_ELEMENTS=(context dir vcs )
+POWERLEVEL9K_RIGHT_PROMPT_ELEMENTS=(hunter04d_segment virtualenv background_jobs status command_execution_time)
 POWERLEVEL9K_STATUS_OK=false
 POWERLEVEL9K_DIR_HOME_BACKGROUND='117'
 POWERLEVEL9K_DIR_HOME_SUBFOLDER_BACKGROUND='075'
