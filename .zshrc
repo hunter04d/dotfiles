@@ -66,6 +66,7 @@ ZSH_THEME="powerlevel9k/powerlevel9k"
 # Add wisely, as too many plugins slow down shell startup.
 plugins=(
   git
+  autoupdate
   colorize
   npm
   nvm
@@ -73,14 +74,17 @@ plugins=(
   kate
   pip
   command-not-found
-  autoupdate
   sudo
   web-search
   extract
+  alias-tips
+  zsh_reload
   zsh-navigation-tools
   zsh-autosuggestions
-  zsh-syntax-highlighting
+  # zsh-syntax-highlighting
+  fast-syntax-highlighting
 )
+source $(dirname $(gem which colorls))/tab_complete.sh
 autoload -U compinit
 compinit
 source $ZSH/oh-my-zsh.sh
@@ -132,6 +136,9 @@ _dotnet_zsh_complete() {
   local completions=("$(dotnet complete "$words")")
   reply=( "${(ps:\n:)completions}" )
 }
+# Add .NET Core SDK tools
+export PATH="$PATH:$HOME/.dotnet/tools"
+
 compctl -K _dotnet_zsh_complete dotnet
 export DOTNET_CLI_TELEMETRY_OPTOUT=1
 # ex - archive extractor
@@ -200,7 +207,7 @@ fixIcons() {
 }
 
 
-colors() {
+display-colors() {
 	local fgc bgc vals
     vals=("\uf175bg|fg\uf178" ${(l:5:):-{0..7}})
     # background colors
@@ -223,15 +230,16 @@ toggle-mouse() {
     #TODO a simpler way to toggle 
     if [[ state = 1 ]]; then
         state=0
-        echo -e 'Middle scroll \e[91mdisabled'
+        echo -e 'Middle scroll \e[91mdisabled\e[0m'
     else
         state=1
-        echo -e 'Middle scroll \e[92menabled'
+        echo -e 'Middle scroll \e[92menabled\e[0m'
     fi
-    echo -e "\e[0m"
     xinput set-prop 11 'libinput Scroll Method Enabled' 0, 0, $state
 }
 
+# for application that want a path to current selected node/npm
+NVM_SYMLINK_CURRENT=true
 # nodejs, npm and nvm setup
 #PATH="$HOME/.node_modules/bin:$PATH"
 #export npm_config_prefix=~/.node_modules
@@ -259,6 +267,12 @@ alias more=less
 alias egrep='egrep --colour=auto'
 alias fgrep='fgrep --colour=auto'
 
+# colorls
+alias lc='colorls'
+alias lcl='colorls -A -l'
+alias lcll='colorls -a -l'
+
+
 globalias() {
    zle _expand_alias
    zle expand-word
@@ -271,7 +285,9 @@ bindkey -M viins "^ " globalias
 
 typeset -A NAMED_DIRS
 NAMED_DIRS=(
-    Web /mnt/e/Web
+    e           /mnt/e
+    d           /mnt/d
+    Web         /mnt/e/Web
     Screenshots /mnt/e/ManjaroScreeneshots
 )
 
@@ -289,54 +305,11 @@ function lsdirs () {
    print -a -C 2 ${(kv)NAMED_DIRS}
 }
 
-# custom segment that displays info about current project
-prompt_hunter04d_segment() {
-   #TODO: setopt and emulate -L zsh     
-    local f
-    local count=0
-    local content
-    local fgc=black
-    local bgc=yellow
-    local temp
-    local icon=''
-    temp=$(command dotnet sln list 2> /dev/null)
-    if [[ $? -eq 0 ]]; then
-        bgc=007
-        local proj=""
-        content="sln: "
-        local totalcount=$(echo $temp| tail -n+3 | wc -l)
-        local cscount=$(echo $temp | grep -i -c csproj$)
-        local fscount=$(echo $temp | grep -i -c fsproj$)
-        local vcxcount=$(echo $temp | grep -i -c vcxproj$)
-        if [[ $cscount -eq $totalcount ]]; then 
-            content+="%F{034}$cscount \uf81a%f" 
-        elif [[ $fscount -eq $totalcount ]]; then
-            content+="%F{057}$fscount \ue7a7%f"
-        elif [[ $vcxcount -eq $totalcount ]]; then
-            content+="%F{171}$vcxcount \uefb71%f"
-        else
-            content+="$totalcount \ue601"
-            if [[ $cscount -ne 0 ]] ; then content+=" | %F{034}$cscount \uf81a%f"; fi
-            if [[ $cscount -ne 0 ]] ; then content+=" | %F{057}$fscount \ue7a7%f"; fi
-            if [[ $vcxcount -ne 0 ]]; then content+=" | %F{171}$vcxcount \ue7a7%f"; fi
-        fi
-    fi
-    temp=(*.(csproj|fsproj)(#qN.))
-    if [[ ${#temp} -eq 1 ]]; then
-        case $temp in
-            *.csproj) icon='\uf81a'; bgc=034; fgc=015;;
-            *.fsproj) icon='\ue7a7'; bgc=057; fgc=015;;
-        esac
-        content="$(xmllint --xpath '/Project/PropertyGroup/TargetFramework/text()' $temp)"
-    fi
-    if [[ -n $content ]]; then
-        "$1_prompt_segment" "$0" "$2" "$bgc" "$fgc" "$icon $content"
-    fi
-}
+source $ZSH_CUSTOM/plugins/project-prompt/project-prompt.zsh
 
 VIRTUAL_ENV_DISABLE_PROMPT=1
 POWERLEVEL9K_LEFT_PROMPT_ELEMENTS=(context dir vcs )
-POWERLEVEL9K_RIGHT_PROMPT_ELEMENTS=(hunter04d_segment virtualenv background_jobs status command_execution_time)
+POWERLEVEL9K_RIGHT_PROMPT_ELEMENTS=(project_segment virtualenv background_jobs status command_execution_time)
 POWERLEVEL9K_STATUS_OK=false
 POWERLEVEL9K_DIR_HOME_BACKGROUND='117'
 POWERLEVEL9K_DIR_HOME_SUBFOLDER_BACKGROUND='075'
