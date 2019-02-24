@@ -85,8 +85,11 @@ plugins=(
   fast-syntax-highlighting
 )
 source $(dirname $(gem which colorls))/tab_complete.sh
-autoload -U compinit
-compinit
+autoload -U compinit && compinit
+
+#autoload -U bashcompinit && bashcompinit
+# snap completion is broken
+#source /var/lib/snapd/snap/core/current/usr/lib/snapd/complete.sh
 source $ZSH/oh-my-zsh.sh
 
 # cacl plugin
