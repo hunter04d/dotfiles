@@ -124,8 +124,8 @@ export LANG=en_US.UTF-8
 # alias ohmyzsh="mate ~/.oh-my-zsh"
 
 HISTFILE=~/.histfile
-HISTSIZE=1000
-SAVEHIST=1000
+HISTSIZE=5000
+SAVEHIST=5000
 
 setopt appendhistory autocd extendedglob glob_star_short nomatch notify ignore_eof
 unsetopt beep
