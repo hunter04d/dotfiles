@@ -65,26 +65,29 @@ ZSH_THEME="powerlevel9k/powerlevel9k"
 # Example format: plugins=(rails git textmate ruby lighthouse)
 # Add wisely, as too many plugins slow down shell startup.
 plugins=(
-  git
+alias-tips
   autoupdate
+  cargo
   colorize
+  command-not-found
+  extract
+  fast-syntax-highlighting
+  git
+  kate
+  ng
   npm
   nvm
-  ng
-  kate
   pip
-  command-not-found
   sudo
+  tmux
   web-search
-  extract
-  alias-tips
-  zsh_reload
-  zsh-navigation-tools
   zsh-autosuggestions
+  zsh-navigation-tools
+  zsh_reload
   # zsh-syntax-highlighting
-  fast-syntax-highlighting
 )
 source $(dirname $(gem which colorls))/tab_complete.sh
+fpath+=~/.zshcomp
 autoload -U compinit && compinit
 
 #autoload -U bashcompinit && bashcompinit
@@ -123,6 +126,7 @@ export LANG=en_US.UTF-8
 # alias zshconfig="mate ~/.zshrc"
 # alias ohmyzsh="mate ~/.oh-my-zsh"
 
+# History 
 HISTFILE=~/.histfile
 HISTSIZE=5000
 SAVEHIST=5000
@@ -205,11 +209,12 @@ mountRT() {
 fixIcons() {
     local current_theme=$(kreadconfig5 --file $HOME/.config/kdeglobals --group Icons --key Theme)
     if [[ $current_theme == Papirus* ]]; then
+        # might need to use just Papirus and not current theme
         sudo -E hardcode-tray --apply --conversion-tool RSVGConvert --size 22 --theme $current_theme
     fi
 }
 
-
+# print terminal colors
 display-colors() {
 	local fgc bgc vals
     vals=("\uf175bg|fg\uf178" ${(l:5:):-{0..7}})
@@ -276,6 +281,7 @@ alias lcl='colorls -A -l'
 alias lcll='colorls -a -l'
 
 
+# alias expansion on ctrl+space
 globalias() {
    zle _expand_alias
    zle expand-word
@@ -283,9 +289,9 @@ globalias() {
 zle -N globalias
 bindkey -M emacs "^ " globalias
 bindkey -M viins "^ " globalias
+
 # zsh named directories
 #idea from http://michael.thegrebs.com/2012/08/06/syncing-zsh-named-directories/
-
 typeset -A NAMED_DIRS
 NAMED_DIRS=(
     e           /mnt/e
@@ -308,8 +314,10 @@ function lsdirs () {
    print -a -C 2 ${(kv)NAMED_DIRS}
 }
 
+# cusmot dotnet prompt part
 source $ZSH_CUSTOM/plugins/project-prompt/project-prompt.zsh
 
+# Powerlevel9k config
 VIRTUAL_ENV_DISABLE_PROMPT=1
 POWERLEVEL9K_LEFT_PROMPT_ELEMENTS=(context dir vcs )
 POWERLEVEL9K_RIGHT_PROMPT_ELEMENTS=(project_segment virtualenv background_jobs status command_execution_time)
@@ -319,5 +327,7 @@ POWERLEVEL9K_DIR_HOME_SUBFOLDER_BACKGROUND='075'
 POWERLEVEL9K_DIR_DEFAULT_BACKGROUND='075'
 POWERLEVEL9K_DIR_ETC_BACKGROUND='006'
 POWERLEVEL9K_BACKGROUND_JOBS_FOREGROUND='075'
+
+# zsh autosuggest config
 ZSH_AUTOSUGGEST_BUFFER_MAX_SIZE=20
 ZSH_AUTOSUGGEST_USE_ASYNC=1
