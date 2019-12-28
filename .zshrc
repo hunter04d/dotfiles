@@ -10,7 +10,7 @@ export ZSH="/home/hunter04d/.oh-my-zsh"
 # See https://github.com/robbyrussell/oh-my-zsh/wiki/Themes
 
 POWERLEVEL9K_MODE='nerdfont-complete'
-ZSH_THEME="powerlevel9k/powerlevel9k"
+ZSH_THEME="powerlevel10k/powerlevel10k"
 
 # Set list of themes to pick from when loading at random
 # Setting this variable when ZSH_THEME=random will cause zsh to load
@@ -65,9 +65,11 @@ ZSH_THEME="powerlevel9k/powerlevel9k"
 # Example format: plugins=(rails git textmate ruby lighthouse)
 # Add wisely, as too many plugins slow down shell startup.
 plugins=(
-alias-tips
+  conda-zsh-completion
+  alias-tips
   autoupdate
   cargo
+  rust
   colorize
   command-not-found
   extract
@@ -75,18 +77,20 @@ alias-tips
   git
   kate
   ng
+  tmux
   npm
   nvm
   pip
   sudo
-  tmux
-  web-search
+  # web-search # not usefull 
   zsh-autosuggestions
   zsh-navigation-tools
   zsh_reload
+  vi-mode
   # zsh-syntax-highlighting
 )
-source $(dirname $(gem which colorls))/tab_complete.sh
+
+
 fpath+=~/.zshcomp
 autoload -U compinit && compinit
 
@@ -103,6 +107,44 @@ source $ZSH_CUSTOM/plugins/calc/calc.plugin.zsh
 
 # You may need to manually set your language environment
 export LANG=en_US.UTF-8
+
+
+
+##############################[nvim: VI ZSH config]##############################
+export VISUAL=nvim
+# switch to normal mode faster
+export KEYTIMEOUT=1
+
+# ctrl + k for normal move, same as nvim
+bindkey '^k' vi-cmd-mode
+
+
+# sane navigation
+bindkey -M vicmd 'H' vi-beginning-of-line
+bindkey -M vicmd 'L' vi-end-of-line
+# ctrl + L is bad
+bindkey -r '^L'
+
+# fix cursor after editor
+_fix_cursor() {
+   echo -ne '\e[5 q'
+}
+
+precmd_functions+=(_fix_cursor)
+
+# cursor selection for cmd/insert modes
+zle-keymap-select () {
+    if [ "$TERM" = "xterm-256color" ]; then
+        if [ $KEYMAP = vicmd ]; then
+            # the command mode for vi
+            echo -ne "\e[2 q"
+        else
+            # the insert mode for vi
+            echo -ne "\e[5 q"
+        fi
+    fi
+}
+
 
 # Preferred editor for local and remote sessions
 # if [[ -n $SSH_CONNECTION ]]; then
@@ -131,6 +173,8 @@ HISTFILE=~/.histfile
 HISTSIZE=5000
 SAVEHIST=5000
 
+
+# some sane options
 setopt appendhistory autocd extendedglob glob_star_short nomatch notify ignore_eof
 unsetopt beep
 
@@ -138,16 +182,8 @@ unsetopt beep
 # autoload -Uz compinit
 # compinit
 
-# dotnet completion
-_dotnet_zsh_complete() {
-  local completions=("$(dotnet complete "$words")")
-  reply=( "${(ps:\n:)completions}" )
-}
-# Add .NET Core SDK tools
-export PATH="$PATH:$HOME/.dotnet/tools"
 
-compctl -K _dotnet_zsh_complete dotnet
-export DOTNET_CLI_TELEMETRY_OPTOUT=1
+##############################[ex/cx]##############################
 # ex - archive extractor
 # usage: ex <file>
 ex () {
@@ -199,7 +235,10 @@ if [ $TILIX_ID ] || [ $VTE_VERSION ]; then
         source /etc/profile.d/vte.sh
 fi
 
-#mount local cifs share
+##############################[random functions]##############################
+
+# DEPRECATED
+#mount local cifs 
 mountRT() {
     sudo mount -t cifs //192.168.1.1/folder /mnt/folder -o vers=1.0,uid=1000,gid=1001, \
         credentials=/home/hunter04d/.rt-ac66u-b1.credentials
@@ -230,7 +269,7 @@ display-colors() {
 }
 
 # toggle light/dark themes
-function ttheme(); $HOME/ThemeChanger/change-theme.sh
+# function ttheme(); $HOME/ThemeChanger/change-theme.sh
 
 # NOTE to self: **11** is very magical might crash
 toggle-mouse() {
@@ -246,40 +285,73 @@ toggle-mouse() {
     xinput set-prop 11 'libinput Scroll Method Enabled' 0, 0, $state
 }
 
+
+
+
+##############################[dotnet: dotnet config]##############################
+# dotnet completion
+_dotnet_zsh_complete() {
+  local completions=("$(dotnet complete "$words")")
+  reply=( "${(ps:\n:)completions}" )
+}
+# Add .NET Core SDK tools
+export PATH="$PATH:$HOME/.dotnet/tools"
+export DOTNET_ROOT=$HOME/dotnet
+export PATH=$PATH:$HOME/dotnet
+compctl -K _dotnet_zsh_complete dotnet
+export DOTNET_CLI_TELEMETRY_OPTOUT=1
+
+
+##############################[nodejs: nodejs and nvm config]##############################
 # for application that want a path to current selected node/npm
 NVM_SYMLINK_CURRENT=true
-# nodejs, npm and nvm setup
 #PATH="$HOME/.node_modules/bin:$PATH"
 #export npm_config_prefix=~/.node_modules
 source /usr/share/nvm/init-nvm.sh
 
 
-
+##############################[ruby]##############################
 #ruby gem config
 PATH="$PATH:$(ruby -e 'print Gem.user_dir')/bin"
 export GEM_HOME=$HOME/.gem
 
+# color ls compinit
+source $(dirname $(gem which colorls))/tab_complete.sh
+
+##############################[aliasing]##############################
+
 # git bare repository for dotfiles
 alias dotconfig='/usr/bin/git --git-dir=$HOME/.dotfiles/ --work-tree=$HOME'
+
+# ii as in windows
 alias ii='dolphin >/dev/null 2>&1'
+
+# cls = clear
 alias cls=clear
 
-
-alias cp="cp -i"                          # confirm before overwriting something
-alias df='df -h'                          # human-readable sizes
-alias free='free -m'                      # show sizes in MB
+# manjaro defaults
+alias cp="cp -i"            # confirm before overwriting something
+alias df='df -h'            # human-readable sizes
+alias free='free -m'        # show sizes in MB
 alias np='kate PKGBUILD &'
 alias more=less
-
 
 alias egrep='egrep --colour=auto'
 alias fgrep='fgrep --colour=auto'
 
+# DEPRECATED: should use exa commands instead
 # colorls
-alias lc='colorls'
-alias lcl='colorls -A -l'
-alias lcll='colorls -a -l'
+# alias lc='colorls'
+# alias lcl='colorls -A -l'
+# alias lcll='colorls -a -l'
 
+# exa
+
+alias lx='ls'
+alias lxl='ls -l'
+alias ls='exa --icons --git'
+alias ll='exa -l --icons --git'
+alias la='exa -l -a --icons --git'
 
 # alias expansion on ctrl+space
 globalias() {
@@ -290,10 +362,10 @@ zle -N globalias
 bindkey -M emacs "^ " globalias
 bindkey -M viins "^ " globalias
 
-# zsh named directories
-#idea from http://michael.thegrebs.com/2012/08/06/syncing-zsh-named-directories/
-typeset -A NAMED_DIRS
-NAMED_DIRS=(
+##############################[zsh named directories]##############################
+# works nicely with p10k
+# idea from http://michael.thegrebs.com/2012/08/06/syncing-zsh-named-directories/
+typeset -A NAMED_DIRS=(
     e           /mnt/e
     d           /mnt/d
     Web         /mnt/e/Web
@@ -310,24 +382,57 @@ for key val in ${(kv)NAMED_DIRS}; do
 done
 unset key val
 
-function lsdirs () {
-   print -a -C 2 ${(kv)NAMED_DIRS}
-}
+function lsdirs(); print -a -C 2 ${(kv)NAMED_DIRS}
 
-# cusmot dotnet prompt part
-source $ZSH_CUSTOM/plugins/project-prompt/project-prompt.zsh
-
-# Powerlevel9k config
+##############################[variables]##############################
 VIRTUAL_ENV_DISABLE_PROMPT=1
-POWERLEVEL9K_LEFT_PROMPT_ELEMENTS=(context dir vcs )
-POWERLEVEL9K_RIGHT_PROMPT_ELEMENTS=(project_segment virtualenv background_jobs status command_execution_time)
-POWERLEVEL9K_STATUS_OK=false
-POWERLEVEL9K_DIR_HOME_BACKGROUND='117'
-POWERLEVEL9K_DIR_HOME_SUBFOLDER_BACKGROUND='075'
-POWERLEVEL9K_DIR_DEFAULT_BACKGROUND='075'
-POWERLEVEL9K_DIR_ETC_BACKGROUND='006'
-POWERLEVEL9K_BACKGROUND_JOBS_FOREGROUND='075'
+
+# DEPRECATED: USING p10k now,
+# Powerlevel9k config
+# POWERLEVEL9K_LEFT_PROMPT_ELEMENTS=(anaconda context dir vcs)
+# POWERLEVEL9K_RIGHT_PROMPT_ELEMENTS=(vi_mode virtualenv background_jobs status command_execution_time)
+
+# POWERLEVEL9K_STATUS_OK=false
+
+# #context config
+# DEFAULT_USER='hunter04d'
+# POWERLEVEL9K_ALWAYS_SHOW_USER=true
+# # dir colours
+# POWERLEVEL9K_DIR_HOME_BACKGROUND='117'
+# POWERLEVEL9K_DIR_HOME_SUBFOLDER_BACKGROUND='075'
+# POWERLEVEL9K_DIR_DEFAULT_BACKGROUND='075'
+# POWERLEVEL9K_DIR_ETC_BACKGROUND='006'
+
+# # dir config
+# POWERLEVEL9K_SHORTEN_DIR_LENGTH='2'
+# POWERLEVEL9K_SHORTEN_STRATEGY='truncate_to_first_and_last'
+
+# POWERLEVEL9K_BACKGROUND_JOBS_FOREGROUND='075'
+# POWERLEVEL9K_ANACONDA_FOREGROUND='015'
+
+# POWERLEVEL9K_VI_INSERT_MODE_STRING=''
+# POWERLEVEL9K_VI_COMMAND_MODE_STRING='[N]'
 
 # zsh autosuggest config
 ZSH_AUTOSUGGEST_BUFFER_MAX_SIZE=20
 ZSH_AUTOSUGGEST_USE_ASYNC=1
+
+
+
+# >>> conda initialize >>>
+# !! Contents within this block are managed by 'conda init' !!
+__conda_setup="$('/home/hunter04d/anaconda3/bin/conda' 'shell.zsh' 'hook' 2> /dev/null)"
+if [ $? -eq 0 ]; then
+    eval "$__conda_setup"
+else
+    if [ -f "/home/hunter04d/anaconda3/etc/profile.d/conda.sh" ]; then
+        . "/home/hunter04d/anaconda3/etc/profile.d/conda.sh"
+    else
+        export PATH="/home/hunter04d/anaconda3/bin:$PATH"
+    fi
+fi
+unset __conda_setup
+# <<< conda initialize <<<
+
+# To customize prompt, run `p10k configure` or edit ~/.p10k.zsh.
+[[ ! -f ~/.p10k.zsh ]] || source ~/.p10k.zsh
